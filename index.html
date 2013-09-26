@@ -15,6 +15,7 @@
     <script type="text/javascript" src="assets/strftime.js"></script>
     <script type="text/javascript" src="assets/ncipnamespace.js"></script>
     <script type="text/javascript">
+
     (function ($, undefined) {
 
       var NCIPGlobal = window.NCIPGlobal;
@@ -47,17 +48,50 @@
       }
 
       function addGroupRepresentation(group) {
-        var $item = $("<li>").addClass("repo grid-1 " + group.category);
-        var $link = $("<a>").attr("href", "group.html?name=" + group.name).appendTo($item);
-        $link.append($("<h2>").text(group.name));
-        $link.append($("<p>").text(group.description));
-        $item.appendTo("#repos");
+        if (group) {
+          var $item = $("<li>").addClass("repo grid-1 " + group.category);
+          var $link = $("<a>").attr("href", "group.html?name=" + group.name).appendTo($item);
+          $link.append($("<h2>").text(group.name));
+          $link.append($("<p>").text(group.description));
+          $item.appendTo("#repos");
+        }
       }
+
+
+      var addResultsToCacheAndPage = function(result) {
+
+        if (result.data && result.data.length > 0) {
+           repos = repos.concat(result.data);
+           addRecentlyUpdatedRepos(repos, page + 1);
+           if (page === 1) {
+             storeLastReposChangeDateInCache(result);
+           }
+        } else {
+          NCIPGlobal.cache.repos = JSON.stringify(repos);
+          window.localStorage.setItem('NCIPrepos', NCIPGlobal.cache.repos);
+          processRepositories(repos);
+        }
+      };
 
       function addRecentlyUpdatedRepos(repos, page) {
 
         repos = repos || [];
         page = page || 1;
+
+        var addResultsToCacheAndPage = function(result) {
+
+          if (result.data && result.data.length > 0) {
+            repos = repos.concat(result.data);
+            addRecentlyUpdatedRepos(repos, page + 1);
+            if (page === 1) {
+              storeLastReposChangeDateInCache(result);
+            }
+          } else {
+            NCIPGlobal.cache.repos = JSON.stringify(repos);
+            window.localStorage.setItem('NCIPrepos', NCIPGlobal.cache.repos);
+            processRepositories(repos);
+          }
+      };
 
         var uri = "https://api.github.com/orgs/ncip/repos?"
                 + "&per_page=100"
@@ -74,28 +108,24 @@
 
           if ( result.status === 403 ) { // Refused
             repos = NCIPGlobal.getCachedRepositories();
-            processRepositories(repos);
+            if(repos === null) {
+              addResultsToCacheAndPage(result);
+            } else {
+              processRepositories(repos);
             }
+          }
 
           if ( result.status === 304 ) { // Not Modified
             repos = NCIPGlobal.getCachedRepositories();
-            processRepositories(repos);
+            if(repos === null) {
+              addResultsToCacheAndPage(result);
+            } else {
+              processRepositories(repos);
             }
+          }
 
           if ( result.status === 200 ) { // OK Status
-
-            if (result.data && result.data.length > 0) {
-              repos = repos.concat(result.data);
-              addRecentlyUpdatedRepos(repos, page + 1);
-              if (page === 1) {
-                storeLastReposChangeDateInCache(result);
-                }
-              }
-            else {
-              NCIPGlobal.cache.repos = JSON.stringify(repos);
-              window.localStorage.setItem('NCIPrepos',NCIPGlobal.cache.repos);
-              processRepositories(repos);
-              }
+            addResultsToCacheAndPage(result);
           }
 
         });
@@ -156,7 +186,7 @@
         }
 
       function addGroups(repoGroups) {
-        var repoGroups = ncip_groups;
+        var repoGroups = window.ncip_groups;
 
         $(function () {
           $.each(repoGroups, function (i, group) {

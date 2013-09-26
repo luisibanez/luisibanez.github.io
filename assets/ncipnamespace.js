@@ -36,9 +36,7 @@ window.NCIPGlobal = (function () {
 
   that.getJSONIfModified = function(uri,sinceDate,successFunction) {
 
-    function clientSideUpdate() {
-
-        if (xhr.readyState === 4) {
+    function clientSideUpdate(data, textStatus, xhr) {
 
           var result = {};
 
@@ -50,26 +48,19 @@ window.NCIPGlobal = (function () {
           result.lastModified = xhr.getResponseHeader('Last-Modified');
 
           successFunction(result);
-          }
 
-        }
+    }
 
     NCIPGlobal.namespace('cache.repos');
     NCIPGlobal.namespace('cache.reposDate');
     NCIPGlobal.namespace('cache.members');
     NCIPGlobal.namespace('cache.membersDate');
 
-    var xhr = new XMLHttpRequest();
 
-    xhr.open('get',uri,true);
-
-    xhr.onreadystatechange = clientSideUpdate;
-
-    if (sinceDate) {
-      xhr.setRequestHeader('If-Modified-Since',sinceDate);
-      }
-
-    xhr.send(null);
+    $.ajax(uri, {
+      'headers': {'If-Modified-Since': sinceDate},
+      'success': clientSideUpdate
+    });
 
     };
 
