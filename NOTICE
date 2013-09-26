@@ -1,0 +1,23 @@
+This project is largely based on source code from the project:
+
+http://twitter.github.com/
+
+distributed under the Apache 2.0 License.
+
+Modifications have been made by Kitware Inc., and such modifications
+are also distributed under the Apache 2.0 License.
+
+The following components are also used in this project:
+
+
+XHook: 
+
+https://github.com/jpillora/xhook
+Distributed under the MIT License
+
+
+XDomain:
+
+https://github.com/jpillora/xdomain
+Distributed under the MIT License
+
