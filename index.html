@@ -54,6 +54,22 @@
         $item.appendTo("#repos");
       }
 
+
+      function addResultsToCacheAndPage(result) {
+
+        if (result.data && result.data.length > 0) {
+           repos = repos.concat(result.data);
+           addRecentlyUpdatedRepos(repos, page + 1);
+           if (page === 1) {
+             storeLastReposChangeDateInCache(result);
+           }
+        } else {
+          NCIPGlobal.cache.repos = JSON.stringify(repos);
+          window.localStorage.setItem('NCIPrepos', NCIPGlobal.cache.repos);
+          processRepositories(repos);
+        }
+      }
+
       function addRecentlyUpdatedRepos(repos, page) {
 
         repos = repos || [];
@@ -79,23 +95,15 @@
 
           if ( result.status === 304 ) { // Not Modified
             repos = NCIPGlobal.getCachedRepositories();
-            processRepositories(repos);
+            if(repos === null) {
+              addResultsToCacheAndPage(result);
+            } else {
+              processRepositories(repos);
             }
+          }
 
           if ( result.status === 200 ) { // OK Status
-
-            if (result.data && result.data.length > 0) {
-              repos = repos.concat(result.data);
-              addRecentlyUpdatedRepos(repos, page + 1);
-              if (page === 1) {
-                storeLastReposChangeDateInCache(result);
-                }
-              }
-            else {
-              NCIPGlobal.cache.repos = JSON.stringify(repos);
-              window.localStorage.setItem('NCIPrepos',NCIPGlobal.cache.repos);
-              processRepositories(repos);
-              }
+            addResultsToCacheAndPage(result);
           }
 
         });
