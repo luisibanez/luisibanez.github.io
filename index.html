@@ -15,6 +15,7 @@
     <script type="text/javascript" src="assets/strftime.js"></script>
     <script type="text/javascript" src="assets/ncipnamespace.js"></script>
     <script type="text/javascript">
+
     (function ($, undefined) {
 
       var NCIPGlobal = window.NCIPGlobal;
@@ -47,11 +48,13 @@
       }
 
       function addGroupRepresentation(group) {
-        var $item = $("<li>").addClass("repo grid-1 " + group.category);
-        var $link = $("<a>").attr("href", "group.html?name=" + group.name).appendTo($item);
-        $link.append($("<h2>").text(group.name));
-        $link.append($("<p>").text(group.description));
-        $item.appendTo("#repos");
+        if (group) {
+          var $item = $("<li>").addClass("repo grid-1 " + group.category);
+          var $link = $("<a>").attr("href", "group.html?name=" + group.name).appendTo($item);
+          $link.append($("<h2>").text(group.name));
+          $link.append($("<p>").text(group.description));
+          $item.appendTo("#repos");
+        }
       }
 
 
@@ -88,7 +91,7 @@
             window.localStorage.setItem('NCIPrepos', NCIPGlobal.cache.repos);
             processRepositories(repos);
           }
-        };
+      };
 
         var uri = "https://api.github.com/orgs/ncip/repos?"
                 + "&per_page=100"
@@ -183,7 +186,7 @@
         }
 
       function addGroups(repoGroups) {
-        var repoGroups = ncip_groups;
+        var repoGroups = window.ncip_groups;
 
         $(function () {
           $.each(repoGroups, function (i, group) {
