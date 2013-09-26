@@ -6,6 +6,25 @@
 /// Writen after example from "JavaScript Patterns", pages 89-90.
 ///
 
+var isIE8 = window.XDomainRequest ? true : false;
+
+function createCrossDomainRequest()
+{
+  var request;
+
+  if (isIE8)
+  {
+    request = new window.XDomainRequest();
+    console.log("IE8 !!");
+  }
+  else
+  {
+    request = new XMLHttpRequest();
+    console.log("NOT IE8 !!");
+  }
+  return request;
+}
+
 window.NCIPGlobal = (function () {
 
   var that = {};
@@ -59,11 +78,18 @@ window.NCIPGlobal = (function () {
     NCIPGlobal.namespace('cache.members');
     NCIPGlobal.namespace('cache.membersDate');
 
-    var xhr = new XMLHttpRequest();
+    var xhr = createCrossDomainRequest();
 
-    xhr.open('get',uri,true);
-
-    xhr.onreadystatechange = clientSideUpdate;
+    if (isIE8) 
+    {
+      xhr.onload = clientSideUpdate;
+      xhr.open("GET",uri,true);
+    }
+    else
+    {
+      xhr.open('GET',uri,true);
+      xhr.onreadystatechange = clientSideUpdate;
+    }
 
     if (sinceDate) {
       xhr.setRequestHeader('If-Modified-Since',sinceDate);
