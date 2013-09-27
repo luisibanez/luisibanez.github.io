@@ -464,16 +464,6 @@ var ncip_repos = [
     "group": "In vivo imaging"
   },
   {
-    "name": "xip",
-    "group": "In vivo imaging",
-    "channel": "OpenXIP"
-  },
-  {
-    "name": "avt",
-    "group": "In vivo imaging",
-    "channel": "OpenXIP"
-  },
-  {
     "name": "pathway-interaction-database",
     "group": "Proteomics"
   },
@@ -536,5 +526,69 @@ var ncip_repos = [
   {
     "name": "digital-model-repository",
     "group": "Additional repositories"
+  },
+  {
+    "name": "xip-host",
+    "group": "OpenXIP"
+  },
+  {
+    "name": "xip-app-cmdExec",
+    "group": "OpenXIP"
+  },
+  {
+    "name": "xip-app-tutorial",
+    "group": "OpenXIP"
+  },
+  {
+    "name": "xip-host-service",
+    "group": "OpenXIP"
+  },
+  {
+    "name": "xip-app",
+    "group": "OpenXIP"
+  },
+  {
+    "name": "old-docs",
+    "group": "OpenXIP"
+  },
+  {
+    "name": "xip-libraries",
+    "group": "OpenXIP"
+  },
+  {
+    "name": "avt-vasari",
+    "group": "OpenXIP"
+  },
+  {
+    "name": "avt-util",
+    "group": "OpenXIP"
+  },
+  {
+    "name": "avt-mvt",
+    "group": "OpenXIP"
+  },
+  {
+    "name": "avt-ia",
+    "group": "OpenXIP"
+  },
+  {
+    "name": "avt-ae",
+    "group": "OpenXIP"
+  },
+  {
+    "name": "avt-ad-install",
+    "group": "OpenXIP"
+  },
+  {
+    "name": "avt-ad-core",
+    "group": "OpenXIP"
+  },
+  {
+    "name": "master-build",
+    "group": "OpenXIP"
+  },
+  {
+    "name": "avt-ad-api",
+    "group": "OpenXIP"
   },
 ];
