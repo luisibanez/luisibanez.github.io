@@ -9,6 +9,13 @@ window.NCIPGlobal = (function () {
 
   var that = {};
 
+  var listOfRepos = [];
+  var listOfMembers = [];
+  var listOfOrgsReceived = [];
+  var listOfOrgsRequested = [];
+
+  that.processReposCallback = function() {};
+
   that.namespace = function(ns_string) {
 
     /// Writen after example from "JavaScript Patterns", pages 89-90.
@@ -117,7 +124,7 @@ window.NCIPGlobal = (function () {
     };
 
 
-  that.getReposFromGithub = function(org,processRepos,repos,page) {
+  that.getReposFromOneOrg = function(org,page) {
 
         page = page || 1;
 
@@ -137,62 +144,70 @@ window.NCIPGlobal = (function () {
         NCIPGlobal.getJSONIfModified(uri,since, function (result) {
 
           if ( result.status === 403 ) { // Refused
-            repos = NCIPGlobal.getCachedRepositories();
-            if( repos ) {
-              processRepos(repos);
-              }
+            listOfRepos = NCIPGlobal.getCachedRepositories();
+            NCIPGlobal.processReposCallback(listOfRepos);
             }
 
           if ( result.status === 304 ) { // Not Modified
-            repos = NCIPGlobal.getCachedRepositories();
-            if( repos === null) {
-              NCIPGlobal.addResultsToCacheAndPage(org,repos,result,processRepos);
-              }
-            else {
-              processRepos(repos);
-              }
+            listOfRepos = NCIPGlobal.getCachedRepositories();
+            NCIPGlobal.processReposCallback(listOfRepos);
             }
 
           if ( result.status === 200 ) { // OK Status
+
             if (result.data && result.data.length > 0) {
-              repos = repos.concat(result.data);
-              NCIPGlobal.getReposFromGithub(org,processRepos,repos, page + 1);
+              // Concatenate with previous pages
+              listOfRepos = listOfRepos.concat(result.data);
+              NCIPGlobal.getReposFromOneOrg(org, page + 1);
               NCIPGlobal.storeLastReposChangeDateInCache(org,result.lastModified);
               }
+            else {
+              // Completed paginating the repos
+              listOfOrgsReceived.push(org);
+
+              if( listOfOrgsReceived.length === listOfOrgsRequested.length ) {
+                NCIPGlobal.storeReposInCache();
+                NCIPGlobal.processReposCallback(listOfRepos);
+                }
+              }
+
             }
 
         });
       };
 
-  that.getReposFromAllOrgs = function(processRepos) {
+  that.getReposFromAllOrgs = function() {
 
-      var repos = [];
+      var setOfOrgs = JSON.parse( NCIPGlobal.cache.orgs ); 
 
-      var orgs = JSON.parse( NCIPGlobal.cache.orgs );
-
-      for (var org in orgs) {
-        NCIPGlobal.getReposFromGithub(org,processRepos,repos);
+      for (var org in setOfOrgs) {
+        listOfOrgsRequested.push(org);
+        NCIPGlobal.getReposFromOneOrg(org);
         }
 
-      console.log('repos = ');
-      console.log(repos);
-      NCIPGlobal.cache.repos = JSON.stringify(repos);
+    };
+
+  that.storeReposInCache = function() {
+
+    if (listOfRepos) {
+      NCIPGlobal.cache.repos = JSON.stringify(listOfRepos);
       window.localStorage.setItem('NCIPrepos',NCIPGlobal.cache.repos);
+      }
+
     };
 
   that.findAllOrgsFromReposCatalog = function(reposCatalog) {
 
-      var organizationsSet = {};
+      var setOfOrgs = {};
 
       for (var i = 0; i < reposCatalog.length; i++) {
         var pieces = reposCatalog[i].full_name.split("/");
         var orgName = pieces[0].toLowerCase();
-        organizationsSet[orgName] = true;
+        setOfOrgs[orgName] = true;
         }
 
-      NCIPGlobal.cache.orgs = JSON.stringify(organizationsSet);
+      NCIPGlobal.cache.orgs = JSON.stringify(setOfOrgs);
 
-      console.log(NCIPGlobal.cache.orgs);
     };
 
   that.storeLastMembersChangeDateInCache = function(result) {
