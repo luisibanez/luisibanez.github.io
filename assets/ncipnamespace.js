@@ -11,10 +11,12 @@ window.NCIPGlobal = (function () {
 
   var listOfRepos = [];
   var listOfMembers = [];
-  var listOfOrgsReceived = [];
+  var listOfOrgsReposReceived = [];
+  var listOfOrgsMembersReceived = [];
   var listOfOrgsRequested = [];
 
   that.processReposCallback = function() {};
+  that.processMembersCallback = function() {};
 
   that.namespace = function(ns_string) {
 
@@ -106,37 +108,36 @@ window.NCIPGlobal = (function () {
     return null;
     };
 
-  that.getLastReposChangeDateInCache = function(org) {
+  that.getLastReposChangeDateInCache = function(org,page) {
+
+    var lastModifiedDate = null;
 
     if (window.localStorage) {
 
-      var localStorageDates = window.localStorage.getItem('NCIPDate');
-
-      console.log('getLastReposChangeDateInCache ');
-      console.log( localStorageDates );
+      var localStorageDates = window.localStorage.getItem('NCIPReposDate');
 
       if ( localStorageDates !== "undefined" && localStorageDates !== null) {
-        console.log( 'dates from cache' );
-        console.log( localStorageDates );
         NCIPGlobal.cache.reposDate = JSON.parse( localStorageDates );
-        console.log('AZUCAR');
-        console.log( NCIPGlobal.cache.reposDate );
+        var orgDates = NCIPGlobal.cache.reposDate[org];
+        if (orgDates) {
+          lastModifiedDate = orgDates[page];
+          }
         }
       }
-
-    var lastModifiedDate = NCIPGlobal.cache.reposDate[org];
-    console.log('lastModifiedDate = '+lastModifiedDate);
 
     return lastModifiedDate;
 
     };
 
-  that.storeLastReposChangeDateInCache = function(org,lastModifiedDate) {
+  that.storeLastReposChangeDateInCache = function(org,page,lastModifiedDate) {
 
-    NCIPGlobal.cache.reposDate[org] = lastModifiedDate;
+    NCIPGlobal.namespace('cache.reposDate.'+org);
+    NCIPGlobal.namespace('cache.reposDate.'+org+'.'+page);
+
+    NCIPGlobal.cache.reposDate[org][page] = lastModifiedDate;
 
     if (window.localStorage) {
-      window.localStorage.setItem('NCIPDate', JSON.stringify( NCIPGlobal.cache.reposDate ) );
+      window.localStorage.setItem('NCIPReposDate', JSON.stringify( NCIPGlobal.cache.reposDate ) );
       }
 
     };
@@ -150,30 +151,30 @@ window.NCIPGlobal = (function () {
                 + "&per_page=100"
                 + "&page="+page;
 
-        var lastModifiedDate = NCIPGlobal.getLastReposChangeDateInCache(org);
+        var lastModifiedDate = NCIPGlobal.getLastReposChangeDateInCache(org,page);
 
-        console.log('in getReposFromOneOrg ' + org);
-        console.log(lastModifiedDate);
 
         NCIPGlobal.getJSONIfModified(uri,lastModifiedDate, function (result) {
 
           if ( result.status === 403 ) { // Refused
-            console.log('NOT MODIFIED 403');
-            listOfOrgsReceived.push(org);
+
+            listOfOrgsReposReceived.push(org);
+
             listOfRepos = NCIPGlobal.getCachedRepositories();
-            if( listOfOrgsReceived.length === listOfOrgsRequested.length ) {
+
+            if( listOfOrgsReposReceived.length === listOfOrgsRequested.length ) {
               NCIPGlobal.processReposCallback(listOfRepos);
               }
 
             }
 
           if ( result.status === 304 ) { // Not Modified
-            console.log('NOT MODIFIED 304');
-            listOfOrgsReceived.push(org);
+
+            listOfOrgsReposReceived.push(org);
 
             listOfRepos = NCIPGlobal.getCachedRepositories();
 
-            if( listOfOrgsReceived.length === listOfOrgsRequested.length ) {
+            if( listOfOrgsReposReceived.length === listOfOrgsRequested.length ) {
               NCIPGlobal.processReposCallback(listOfRepos);
               }
 
@@ -184,16 +185,15 @@ window.NCIPGlobal = (function () {
             if (result.data && result.data.length > 0) {
               // Concatenate with previous pages
               listOfRepos = listOfRepos.concat(result.data);
-              NCIPGlobal.storeLastReposChangeDateInCache(org,result.lastModified);
+              NCIPGlobal.storeLastReposChangeDateInCache(org,page,result.lastModified);
               // Go on recursively
               NCIPGlobal.getReposFromOneOrg(org, page + 1);
               }
             else {
               // Completed paginating the repos
-              listOfOrgsReceived.push(org);
+              listOfOrgsReposReceived.push(org);
 
-              if( listOfOrgsReceived.length === listOfOrgsRequested.length ) {
-                console.log('listOfOrgsRequested = ' + listOfOrgsRequested);
+              if( listOfOrgsReposReceived.length === listOfOrgsRequested.length ) {
                 NCIPGlobal.storeReposInCache();
                 NCIPGlobal.processReposCallback(listOfRepos);
                 }
@@ -208,20 +208,44 @@ window.NCIPGlobal = (function () {
 
       var setOfOrgs = JSON.parse( NCIPGlobal.cache.orgs );
 
+      listOfOrgsRequested = [];
+
       for (var org in setOfOrgs) {
         listOfOrgsRequested.push(org);
         }
     };
 
+  that.clearListOfReceivedReposOrgs = function() {
+
+      listOfOrgsReposReceived = [];
+
+      }
+
+  that.clearListOfReceivedMembersOrgs = function() {
+
+      listOfOrgsMembersReceived = [];
+
+      }
+
   that.getReposFromAllOrgs = function() {
 
       NCIPGlobal.populateListOfRequestOrgs();
+      NCIPGlobal.clearListOfReceivedReposOrgs();
 
       var setOfOrgs = JSON.parse( NCIPGlobal.cache.orgs );
 
       for (var org in setOfOrgs) {
         NCIPGlobal.getReposFromOneOrg(org);
         }
+
+    };
+
+  that.storeMembersInCache = function() {
+
+    if (listOfMembers) {
+      NCIPGlobal.cache.members = JSON.stringify(listOfMembers);
+      window.localStorage.setItem('NCIPmembers',NCIPGlobal.cache.members);
+      }
 
     };
 
@@ -248,60 +272,92 @@ window.NCIPGlobal = (function () {
 
     };
 
-  that.storeLastMembersChangeDateInCache = function(result) {
+  that.storeLastMembersChangeDateInCache = function(org,lastModifiedDate) {
 
-        if (window.localStorage) {
+      NCIPGlobal.cache.membersDate[org] = lastModifiedDate;
 
-          if (window.localStorage.getItem('NCIPDate') === "undefined" || window.localStorage.getItem('NCIPDate') === null) {
-            NCIPGlobal.cache.membersDate = result.lastModified;
-            window.localStorage.setItem('NCIPDate',NCIPGlobal.cache.membersDate);
-            }
-          else {
-            NCIPGlobal.cache.membersDate = window.localStorage.getItem('NCIPDate');
-            }
+      if (window.localStorage) {
+        window.localStorage.setItem('NCIPMembersDate',JSON.stringify(NCIPGlobal.cache.membersDate ) );
+        }
+
+    };
+
+  that.getLastMembersChangeDateInCache = function(org) {
+
+      var lastModifiedDate = null;
+
+      if (window.localStorage) {
+
+        var localStorageDates = window.localStorage.getItem('NCIPMembersDate');
+
+        if ( localStorageDates !== "undefined" && localStorageDates !== null) {
+          NCIPGlobal.cache.membersDate = JSON.parse( localStorageDates );
+          lastModifiedDate = NCIPGlobal.cache.membersDate[org];
           }
+        }
 
-        };
+    return lastModifiedDate;
 
-  that.processMembers = function(members) {
-          $(function () {
-            $("#num-members").text(members.length);
-          });
-        };
+    };
 
-  that.getMembers = function (result) {
+  that.getMembersFromAllOrgs = function() {
+
+      NCIPGlobal.populateListOfRequestOrgs();
+      NCIPGlobal.clearListOfReceivedMembersOrgs();
+
+      var setOfOrgs = JSON.parse( NCIPGlobal.cache.orgs );
+
+      for (var org in setOfOrgs) {
+        NCIPGlobal.getMembersFromOneOrg(org);
+        }
+
+    };
+
+
+  that.getMembersFromOneOrg = function (org) {
+
+      var uri = 'https://api.github.com/orgs/' + org + '/members';
+
+      var lastMemberDateChange = NCIPGlobal.getLastMembersChangeDateInCache(org);
+
+      NCIPGlobal.getJSONIfModified(uri, lastMemberDateChange, function (result) {
+
+        listOfOrgsMembersReceived.push(org);
 
         if ( result.status === 403 ) { // Refused
-          var members = NCIPGlobal.getCachedMembers();
-          NCIPGlobal.processMembers(members);
+
+          listOfMembers = NCIPGlobal.getCachedMembers();
+
+          if( listOfOrgsMembersReceived.length === listOfOrgsRequested.length ) {
+            NCIPGlobal.processMembersCallback(listOfMembers);
+            }
+
           }
 
         if ( result.status === 304 ) { // Not Modified
-          var members = NCIPGlobal.getCachedMembers();
-          NCIPGlobal.processMembers(members);
+
+          listOfMembers = NCIPGlobal.getCachedMembers();
+
+          if( listOfOrgsMembersReceived.length === listOfOrgsRequested.length ) {
+            NCIPGlobal.processMembersCallback(listOfMembers);
+            }
+
           }
 
         if ( result.status === 200 ) { // OK Status
-          var members = result.data;
-          NCIPGlobal.cache.members = JSON.stringify(members);
-          window.localStorage.setItem('NCIPmembers',NCIPGlobal.cache.members);
-          NCIPGlobal.processMembers(members);
-          NCIPGlobal.storeLastMembersChangeDateInCache(result);
-        }
 
-      };
+          // Concatenate with previous organizations
+          listOfMembers = listOfMembers.concat(result.data);
 
+          if( listOfOrgsMembersReceived.length === listOfOrgsRequested.length ) {
+            NCIPGlobal.storeLastMembersChangeDateInCache(org,result.lastModified);
+            NCIPGlobal.storeMembersInCache();
+            NCIPGlobal.processMembersCallback(listOfMembers);
+            }
 
-  that.getMembersFromOrganization = function (org) {
+          }
 
-      var since = null;
-
-      if (window.localStorage) {
-        NCIPGlobal.cache.membersDate = window.localStorage.getItem('NCIPDate');
-        since = NCIPGlobal.cache.membersDate;
-        }
-
-      NCIPGlobal.getJSONIfModified('https://api.github.com/orgs/' + org + '/members', since, NCIPGlobal.getMembers );
+        });
 
       };
 

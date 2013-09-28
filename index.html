@@ -21,7 +21,7 @@
       function addRecentlyUpdatedRepo(repo) {
         var $item = $("<li>");
 
-        var $name = $("<a>").attr("href", repo.html_url).text(repo.full_name);
+        var $name = $("<a>").attr("href", repo.html_url).text(repo.name);
         $item.append($("<span>").addClass("name").append($name));
 
         var $time = $("<a>").attr("href", repo.html_url + "/commits").text(strftime("%h %e, %Y", repo.pushed_at));
@@ -48,9 +48,13 @@
         $item.appendTo("#repos");
       }
 
-      function processRepositories(repos) {
+      function processMembers(members) {
+          $(function () {
+            $("#num-members").text(members.length);
+          });
+        };
 
-          console.log('processRepositories');
+      function processRepositories(repos) {
 
           $(function () {
 
@@ -91,10 +95,12 @@
       }
 
       NCIPGlobal.processReposCallback = processRepositories;
+      NCIPGlobal.processMembersCallback = processMembers;
 
       NCIPGlobal.initializeCache();
       NCIPGlobal.findAllOrgsFromReposCatalog(ncip_repos);
       NCIPGlobal.getReposFromAllOrgs();
+      NCIPGlobal.getMembersFromAllOrgs();
 
       addGroups();
 
