@@ -13,6 +13,7 @@ window.NCIPGlobal = (function () {
   var listOfMembers = [];
   var listOfOrgsReceived = [];
   var listOfOrgsRequested = [];
+  var listOfOrgsLastModifiedDates = [];
 
   that.processReposCallback = function() {};
 
@@ -106,19 +107,34 @@ window.NCIPGlobal = (function () {
     return null;
     };
 
-  that.storeLastReposChangeDateInCache = function(org,date) {
+  that.getLastReposChangeDateInCache = function(org) {
 
     if (window.localStorage) {
 
-      NCIPGlobal.cache.reposDate = [];
+      var localStorageDates = window.localStorage.getItem('NCIPDate');
 
-      if (window.localStorage.getItem('NCIPDate') === "undefined" || window.localStorage.getItem('NCIPDate') === null) {
-        NCIPGlobal.cache.reposDate[org] = date;
-        window.localStorage.setItem('NCIPDate',NCIPGlobal.cache.reposDate);
+      if ( localStorageDates !== "undefined" && localStorageDates !== null) {
+        console.log( 'dates from cache' );
+        console.log( localStorageDates );
+        NCIPGlobal.cache.reposDate = JSON.parse( localStorageDates );
         }
-      else {
-        NCIPGlobal.cache.reposDate = window.localStorage.getItem('NCIPDate');
-        }
+      }
+
+    return NCIPGlobal.cache.reposDate[org];
+
+    };
+
+  that.storeLastReposChangeDateInCache = function(org,lastModifiedDate) {
+
+    console.log('storeLastReposChangeDateInCache');
+    console.log(org);
+    console.log(lastModifiedDate);
+
+    NCIPGlobal.cache.reposDate[org] = lastModifiedDate;
+
+    if (window.localStorage) {
+      window.localStorage.setItem('NCIPDate', JSON.stringify( NCIPGlobal.cache.reposDate ) );
+      console.log( NCIPGlobal.cache.reposDate );
       }
 
     };
@@ -132,16 +148,9 @@ window.NCIPGlobal = (function () {
                 + "&per_page=100"
                 + "&page="+page;
 
-        var since = null;
+        var lasModifiedDate = NCIPGlobal.getLastReposChangeDateInCache(org);
 
-        if (window.localStorage) {
-          NCIPGlobal.cache.reposDate = window.localStorage.getItem('NCIPDate');
-          if ( NCIPGlobal.cache.reposDate ) {
-            since = NCIPGlobal.cache.reposDate[org];
-            }
-          }
-
-        NCIPGlobal.getJSONIfModified(uri,since, function (result) {
+        NCIPGlobal.getJSONIfModified(uri,lasModifiedDate, function (result) {
 
           if ( result.status === 403 ) { // Refused
             listOfRepos = NCIPGlobal.getCachedRepositories();
@@ -158,8 +167,9 @@ window.NCIPGlobal = (function () {
             if (result.data && result.data.length > 0) {
               // Concatenate with previous pages
               listOfRepos = listOfRepos.concat(result.data);
-              NCIPGlobal.getReposFromOneOrg(org, page + 1);
               NCIPGlobal.storeLastReposChangeDateInCache(org,result.lastModified);
+              // Go on recursively
+              NCIPGlobal.getReposFromOneOrg(org, page + 1);
               }
             else {
               // Completed paginating the repos
@@ -178,7 +188,7 @@ window.NCIPGlobal = (function () {
 
   that.getReposFromAllOrgs = function() {
 
-      var setOfOrgs = JSON.parse( NCIPGlobal.cache.orgs ); 
+      var setOfOrgs = JSON.parse( NCIPGlobal.cache.orgs );
 
       for (var org in setOfOrgs) {
         listOfOrgsRequested.push(org);
