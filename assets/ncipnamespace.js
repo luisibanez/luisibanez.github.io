@@ -13,7 +13,6 @@ window.NCIPGlobal = (function () {
   var listOfMembers = [];
   var listOfOrgsReceived = [];
   var listOfOrgsRequested = [];
-  var listOfOrgsLastModifiedDates = [];
 
   that.processReposCallback = function() {};
 
@@ -113,28 +112,31 @@ window.NCIPGlobal = (function () {
 
       var localStorageDates = window.localStorage.getItem('NCIPDate');
 
+      console.log('getLastReposChangeDateInCache ');
+      console.log( localStorageDates );
+
       if ( localStorageDates !== "undefined" && localStorageDates !== null) {
         console.log( 'dates from cache' );
         console.log( localStorageDates );
         NCIPGlobal.cache.reposDate = JSON.parse( localStorageDates );
+        console.log('AZUCAR');
+        console.log( NCIPGlobal.cache.reposDate );
         }
       }
 
-    return NCIPGlobal.cache.reposDate[org];
+    var lastModifiedDate = NCIPGlobal.cache.reposDate[org];
+    console.log('lastModifiedDate = '+lastModifiedDate);
+
+    return lastModifiedDate;
 
     };
 
   that.storeLastReposChangeDateInCache = function(org,lastModifiedDate) {
 
-    console.log('storeLastReposChangeDateInCache');
-    console.log(org);
-    console.log(lastModifiedDate);
-
     NCIPGlobal.cache.reposDate[org] = lastModifiedDate;
 
     if (window.localStorage) {
       window.localStorage.setItem('NCIPDate', JSON.stringify( NCIPGlobal.cache.reposDate ) );
-      console.log( NCIPGlobal.cache.reposDate );
       }
 
     };
@@ -148,18 +150,33 @@ window.NCIPGlobal = (function () {
                 + "&per_page=100"
                 + "&page="+page;
 
-        var lasModifiedDate = NCIPGlobal.getLastReposChangeDateInCache(org);
+        var lastModifiedDate = NCIPGlobal.getLastReposChangeDateInCache(org);
 
-        NCIPGlobal.getJSONIfModified(uri,lasModifiedDate, function (result) {
+        console.log('in getReposFromOneOrg ' + org);
+        console.log(lastModifiedDate);
+
+        NCIPGlobal.getJSONIfModified(uri,lastModifiedDate, function (result) {
 
           if ( result.status === 403 ) { // Refused
+            console.log('NOT MODIFIED 403');
+            listOfOrgsReceived.push(org);
             listOfRepos = NCIPGlobal.getCachedRepositories();
-            NCIPGlobal.processReposCallback(listOfRepos);
+            if( listOfOrgsReceived.length === listOfOrgsRequested.length ) {
+              NCIPGlobal.processReposCallback(listOfRepos);
+              }
+
             }
 
           if ( result.status === 304 ) { // Not Modified
+            console.log('NOT MODIFIED 304');
+            listOfOrgsReceived.push(org);
+
             listOfRepos = NCIPGlobal.getCachedRepositories();
-            NCIPGlobal.processReposCallback(listOfRepos);
+
+            if( listOfOrgsReceived.length === listOfOrgsRequested.length ) {
+              NCIPGlobal.processReposCallback(listOfRepos);
+              }
+
             }
 
           if ( result.status === 200 ) { // OK Status
@@ -176,6 +193,7 @@ window.NCIPGlobal = (function () {
               listOfOrgsReceived.push(org);
 
               if( listOfOrgsReceived.length === listOfOrgsRequested.length ) {
+                console.log('listOfOrgsRequested = ' + listOfOrgsRequested);
                 NCIPGlobal.storeReposInCache();
                 NCIPGlobal.processReposCallback(listOfRepos);
                 }
@@ -186,12 +204,22 @@ window.NCIPGlobal = (function () {
         });
       };
 
-  that.getReposFromAllOrgs = function() {
+  that.populateListOfRequestOrgs = function() {
 
       var setOfOrgs = JSON.parse( NCIPGlobal.cache.orgs );
 
       for (var org in setOfOrgs) {
         listOfOrgsRequested.push(org);
+        }
+    };
+
+  that.getReposFromAllOrgs = function() {
+
+      NCIPGlobal.populateListOfRequestOrgs();
+
+      var setOfOrgs = JSON.parse( NCIPGlobal.cache.orgs );
+
+      for (var org in setOfOrgs) {
         NCIPGlobal.getReposFromOneOrg(org);
         }
 
