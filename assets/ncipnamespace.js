@@ -69,6 +69,8 @@ window.NCIPGlobal = (function () {
           result.status = xhr.status;
           result.lastModified = xhr.getResponseHeader('Last-Modified');
 
+          console.log('X-RateLimit-Remaining: ' + xhr.getResponseHeader('X-RateLimit-Remaining'));
+
           successFunction(result);
           }
 
@@ -197,6 +199,7 @@ window.NCIPGlobal = (function () {
         page = page || 1;
 
         var uri = "https://api.github.com/orgs/" + org + "/repos?"
+                + "&access_token=b200f47521b2b51309a8baf7f3e5e2fdb73ab69a"
                 + "&per_page=100"
                 + "&page="+page;
 
@@ -373,7 +376,8 @@ window.NCIPGlobal = (function () {
 
   that.getMembersFromOneOrg = function (org) {
 
-      var uri = 'https://api.github.com/orgs/' + org + '/members';
+      var uri = 'https://api.github.com/orgs/' + org + '/members?'
+                + "&access_token=b200f47521b2b51309a8baf7f3e5e2fdb73ab69a";
 
       var lastMemberDateChange = NCIPGlobal.getLastMembersChangeDateInCache(org);
 
