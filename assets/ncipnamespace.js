@@ -436,6 +436,122 @@ window.NCIPGlobal = (function () {
 
       };
 
+  that.addRecentlyUpdatedRepo = function(repo) {
+
+        if (repo) {
+          var $item = $("<li>");
+
+          var $name = $("<a>").attr("href", repo.html_url).text(repo.name);
+          $item.append($("<span>").addClass("name").append($name));
+
+          var formattedDate;
+          if (browserIsIELessThan10) {
+            formattedDate = repo.pushed_at;
+            }
+          else {
+            formattedDate = strftime("%h %e, %Y", repo.pushed_at);
+            }
+
+          var $time = $("<a>").attr("href", repo.html_url + "/commits").text(formattedDate);
+          $item.append($("<span>").addClass("time").append($time));
+
+          $item.append('<span class="bullet">&sdot;</span>');
+
+          var $watchers = $("<a>").attr("href", repo.html_url + "/watchers").text(repo.watchers + " stargazers");
+          $item.append($("<span>").addClass("watchers").append($watchers));
+
+          $item.append('<span class="bullet">&sdot;</span>');
+
+          var $forks = $("<a>").attr("href", repo.html_url + "/network").text(repo.forks + " forks");
+          $item.append($("<span>").addClass("forks").append($forks));
+
+          $item.appendTo("#recently-updated-repos");
+          }
+      };
+
+    that.addRecentlyUpdatedRepos = function(repos) {
+
+          $(function () {
+
+            if( repos ) {
+
+              $("#num-repos").text(repos.length);
+
+              // Convert pushed_at to Date.
+              $.each(repos, function (i, repo) {
+                if (!browserIsIELessThan10) {
+                  repo.pushed_at = new Date(repo.pushed_at);
+                  }
+              });
+
+              // Sort by most-recently pushed to.
+              repos.sort(function (a, b) {
+                if (a.pushed_at < b.pushed_at) return 1;
+                if (b.pushed_at < a.pushed_at) return -1;
+                return 0;
+              });
+
+              $.each(repos.slice(0, 3), function (i, repo) {
+                NCIPGlobal.addRecentlyUpdatedRepo(repo);
+              });
+            }
+
+          });
+
+        };
+
+
+    that.getMembersFromOneOrgWithoutCORS = function(org) {
+
+        var uri = "https://api.github.com/orgs/" + org + "/members?"
+                + "&callback=?"
+                + "&access_token=b200f47521b2b51309a8baf7f3e5e2fdb73ab69a";
+
+        $.getJSON(uri, function (result) {
+
+          NCIPGlobal.reportReceivedOrgMembers(org);
+          NCIPGlobal.accumulateListOfMembers(result.data);
+
+          if( NCIPGlobal.haveReceivedAllRequestedOrgMembers() ) {
+            NCIPGlobal.storeMembersInCache();
+            NCIPGlobal.processMembers();
+            }
+
+        });
+
+      };
+
+  that.getReposFromOneOrgWithoutCORS = function(org,page) {
+
+        page = page || 1;
+
+        var uri = "https://api.github.com/orgs/" + org + "/repos?"
+                + "&callback=?"
+                + "&per_page=100"
+                + "&page="+page
+                + "&access_token=b200f47521b2b51309a8baf7f3e5e2fdb73ab69a";
+
+        $.getJSON(uri, function (result) {
+
+          if (result.data && result.data.length > 0) {
+            NCIPGlobal.accumulateListOfRepos(result.data);
+            NCIPGlobal.storeLastReposChangeDateInCache(org,page,result.lastModified);
+            NCIPGlobal.getReposFromOneOrgWithoutCORS(org,page + 1);
+            }
+          else {
+            // Completed paginating the repos
+            NCIPGlobal.reportReceivedOrgRepos(org);
+
+            if( NCIPGlobal.haveReceivedAllRequestedOrgRepos() ) {
+              NCIPGlobal.storeReposInCache();
+              NCIPGlobal.processRepos();
+              }
+            }
+
+        });
+      };
+
+
   return that;
 
 }());
