@@ -207,6 +207,8 @@ window.NCIPGlobal = (function () {
 
           if ( result.status === 403 ) { // Refused
 
+            console.log('STATUS 403: Server refused. This typically means a saturation of the rate limit');
+
             NCIPGlobal.reportReceivedOrgRepos(org);
 
             listOfRepos = NCIPGlobal.getCachedRepositories();
