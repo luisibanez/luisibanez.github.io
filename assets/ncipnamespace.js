@@ -150,12 +150,47 @@ window.NCIPGlobal = (function () {
 
     };
 
+  that.reportReceivedOrgMembers = function(org) {
+
+      listOfOrgsMembersReceived.push(org);
+
+    };
+
+  that.accumulateListOfMembers = function(data) {
+
+      listOfMembers = listOfMembers.concat(data);
+
+    };
+
+  that.accumulateListOfRepos = function(data) {
+
+    listOfRepos = listOfRepos.concat(data);
+
+    };
+
   that.haveReceivedAllRequestedOrgRepos = function(org) {
 
     return ( listOfOrgsReposReceived.length === listOfOrgsRequested.length );
 
     };
 
+  that.haveReceivedAllRequestedOrgMembers = function(org) {
+
+    return ( listOfOrgsMembersReceived.length === listOfOrgsRequested.length );
+
+    };
+
+  that.processMembers = function() {
+
+    NCIPGlobal.processMembersCallback(listOfMembers);
+
+    };
+
+  that.processRepos = function() {
+
+    NCIPGlobal.processReposCallback(listOfRepos);
+
+    };
 
   that.getReposFromOneOrg = function(org,page) {
 
@@ -177,7 +212,7 @@ window.NCIPGlobal = (function () {
             listOfRepos = NCIPGlobal.getCachedRepositories();
 
             if( NCIPGlobal.haveReceivedAllRequestedOrgRepos() ) {
-              NCIPGlobal.processReposCallback(listOfRepos);
+              NCIPGlobal.processRepos();
               }
 
             }
@@ -189,7 +224,7 @@ window.NCIPGlobal = (function () {
             listOfRepos = NCIPGlobal.getCachedRepositories();
 
             if( NCIPGlobal.haveReceivedAllRequestedOrgRepos() ) {
-              NCIPGlobal.processReposCallback(listOfRepos);
+              NCIPGlobal.processRepos();
               }
 
             }
@@ -198,7 +233,7 @@ window.NCIPGlobal = (function () {
 
             if (result.data && result.data.length > 0) {
               // Concatenate with previous pages
-              listOfRepos = listOfRepos.concat(result.data);
+              NCIPGlobal.accumulateListOfMembers(result.data);
               NCIPGlobal.storeLastReposChangeDateInCache(org,page,result.lastModified);
               // Go on recursively
               NCIPGlobal.getReposFromOneOrg(org, page + 1);
@@ -209,7 +244,7 @@ window.NCIPGlobal = (function () {
 
               if( NCIPGlobal.haveReceivedAllRequestedOrgRepos() ) {
                 NCIPGlobal.storeReposInCache();
-                NCIPGlobal.processReposCallback(listOfRepos);
+                NCIPGlobal.processRepos();
                 }
               }
 
@@ -342,14 +377,14 @@ window.NCIPGlobal = (function () {
 
       NCIPGlobal.getJSONIfModified(uri, lastMemberDateChange, function (result) {
 
-        listOfOrgsMembersReceived.push(org);
+        NCIPGlobal.reportReceivedOrgMembers(org);
 
         if ( result.status === 403 ) { // Refused
 
           listOfMembers = NCIPGlobal.getCachedMembers();
 
-          if( listOfOrgsMembersReceived.length === listOfOrgsRequested.length ) {
-            NCIPGlobal.processMembersCallback(listOfMembers);
+          if( NCIPGlobal.haveReceivedAllRequestedOrgMembers() ) {
+            NCIPGlobal.processMembers();
             }
 
           }
@@ -358,21 +393,20 @@ window.NCIPGlobal = (function () {
 
           listOfMembers = NCIPGlobal.getCachedMembers();
 
-          if( listOfOrgsMembersReceived.length === listOfOrgsRequested.length ) {
-            NCIPGlobal.processMembersCallback(listOfMembers);
+          if( NCIPGlobal.haveReceivedAllRequestedOrgMembers() ) {
+            NCIPGlobal.processMembers();
             }
 
           }
 
         if ( result.status === 200 ) { // OK Status
 
-          // Concatenate with previous organizations
-          listOfMembers = listOfMembers.concat(result.data);
+          NCIPGlobal.accumulateListOfMembers(result.data);
 
-          if( listOfOrgsMembersReceived.length === listOfOrgsRequested.length ) {
+          if( NCIPGlobal.haveReceivedAllRequestedOrgMembers() ) {
             NCIPGlobal.storeLastMembersChangeDateInCache(org,result.lastModified);
             NCIPGlobal.storeMembersInCache();
-            NCIPGlobal.processMembersCallback(listOfMembers);
+            NCIPGlobal.processMembers();
             }
 
           }
