@@ -106,11 +106,9 @@
       addGroups();
 
 
-      function addReposInCompatibleWay(org,repos, page) {
+      function addReposInCompatibleWay(org,listOfRepos,page) {
 
-        console.log('addReposInCompatibleWay ' + org );
-
-        repos = repos || [];
+        listOfRepos = listOfRepos || [];
         page = page || 1;
 
         var uri = "https://api.github.com/orgs/" + org + "/repos?callback=?"
@@ -120,12 +118,23 @@
         $.getJSON(uri, function (result) {
 
           if (result.data && result.data.length > 0) {
-            repos = repos.concat(result.data);
-            NCIPGlobal.namespace('cache.repos2.'+org);
-            NCIPGlobal.namespace('cache.repos2.'+org+'.'+page);
-            NCIPGlobal.cache.repos2[org][page] = result.data;
-            addReposInCompatibleWay(org,repos, page + 1);
+            listOfRepos = listOfRepos.concat(result.data);
+            NCIPGlobal.namespace('cache.reposRaw.'+org);
+            NCIPGlobal.namespace('cache.reposRaw.'+org+'.'+page);
+            NCIPGlobal.cache.reposRaw[org][page] = result.data;
+            NCIPGlobal.storeLastReposChangeDateInCache(org,page,result.lastModified);
+            addReposInCompatibleWay(org,listOfRepos,page + 1);
           }
+          else {
+            // Completed paginating the repos
+            NCIPGlobal.reportReceivedOrgRepos(org);
+
+            if( NCIPGlobal.haveReceivedAllRequestedOrgRepos() ) {
+              NCIPGlobal.storeReposInCache();
+              NCIPGlobal.processReposCallback(listOfRepos);
+              }
+            }
+
         });
       }
 
@@ -137,15 +146,23 @@
 
       if ( browserIsIELessThan10 ) {
 
+        NCIPGlobal.populateListOfRequestOrgs();
+        NCIPGlobal.clearListOfReceivedReposOrgs();
+
         var setOfOrgs = JSON.parse( NCIPGlobal.cache.orgs );
 
         for (var org in setOfOrgs) {
           addReposInCompatibleWay(org)
           }
-        }
 
-      NCIPGlobal.getReposFromAllOrgs();
-      NCIPGlobal.getMembersFromAllOrgs();
+        }
+      else {
+
+        NCIPGlobal.getJSONIfModified = NCIPGlobal.getJSONIfModifiedWithCORS;
+        NCIPGlobal.getReposFromAllOrgs();
+        NCIPGlobal.getMembersFromAllOrgs();
+
+        }
 
     })(jQuery);
     </script>

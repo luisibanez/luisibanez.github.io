@@ -54,7 +54,7 @@ window.NCIPGlobal = (function () {
 
     };
 
-  that.getJSONIfModified = function(uri,sinceDate,successFunction) {
+  that.getJSONIfModifiedWithCORS = function(uri,sinceDate,successFunction) {
 
     function clientSideUpdate() {
 
@@ -87,6 +87,8 @@ window.NCIPGlobal = (function () {
     xhr.send(null);
 
     };
+
+  that.getJSONIfModified = that.getJSONIfModifiedWithCORS;
 
   that.getCachedRepositories = function() {
     var cachedRepos = window.localStorage.getItem('NCIPrepos');
@@ -142,6 +144,18 @@ window.NCIPGlobal = (function () {
 
     };
 
+  that.reportReceivedOrgRepos = function(org) {
+
+        listOfOrgsReposReceived.push(org);
+
+    };
+
+  that.haveReceivedAllRequestedOrgRepos = function(org) {
+
+    return ( listOfOrgsReposReceived.length === listOfOrgsRequested.length );
+
+    };
+
 
   that.getReposFromOneOrg = function(org,page) {
 
@@ -158,11 +172,11 @@ window.NCIPGlobal = (function () {
 
           if ( result.status === 403 ) { // Refused
 
-            listOfOrgsReposReceived.push(org);
+            NCIPGlobal.reportReceivedOrgRepos(org);
 
             listOfRepos = NCIPGlobal.getCachedRepositories();
 
-            if( listOfOrgsReposReceived.length === listOfOrgsRequested.length ) {
+            if( NCIPGlobal.haveReceivedAllRequestedOrgRepos() ) {
               NCIPGlobal.processReposCallback(listOfRepos);
               }
 
@@ -170,11 +184,11 @@ window.NCIPGlobal = (function () {
 
           if ( result.status === 304 ) { // Not Modified
 
-            listOfOrgsReposReceived.push(org);
+            NCIPGlobal.reportReceivedOrgRepos(org);
 
             listOfRepos = NCIPGlobal.getCachedRepositories();
 
-            if( listOfOrgsReposReceived.length === listOfOrgsRequested.length ) {
+            if( NCIPGlobal.haveReceivedAllRequestedOrgRepos() ) {
               NCIPGlobal.processReposCallback(listOfRepos);
               }
 
@@ -191,9 +205,9 @@ window.NCIPGlobal = (function () {
               }
             else {
               // Completed paginating the repos
-              listOfOrgsReposReceived.push(org);
+              NCIPGlobal.reportReceivedOrgRepos(org);
 
-              if( listOfOrgsReposReceived.length === listOfOrgsRequested.length ) {
+              if( NCIPGlobal.haveReceivedAllRequestedOrgRepos() ) {
                 NCIPGlobal.storeReposInCache();
                 NCIPGlobal.processReposCallback(listOfRepos);
                 }
