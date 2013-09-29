@@ -263,9 +263,15 @@ window.NCIPGlobal = (function () {
       var setOfOrgs = {};
 
       for (var i = 0; i < reposCatalog.length; i++) {
-        var pieces = reposCatalog[i].full_name.split("/");
-        var orgName = pieces[0].toLowerCase();
-        setOfOrgs[orgName] = true;
+        var repoEntry = reposCatalog[i];
+        if ( repoEntry ) {
+          var fullName = repoEntry.full_name;
+          if ( fullName ) {
+            var pieces = fullName.split("/");
+            var orgName = pieces[0].toLowerCase();
+            setOfOrgs[orgName] = true;
+            }
+          }
         }
 
       NCIPGlobal.cache.orgs = JSON.stringify(setOfOrgs);

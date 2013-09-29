@@ -13,6 +13,14 @@
     <script type="text/javascript" src="assets/jquery-1.7.1.min.js"></script>
     <script type="text/javascript" src="assets/strftime.js"></script>
     <script type="text/javascript" src="assets/ncipnamespace.js"></script>
+
+    <script>
+      var browserIsIELessThan10 = false;
+      if ($.browser.msie && parseInt($.browser.version, 10) < 10){
+        browserIsIELessThan10 = true;
+        }
+    </script>
+
     <script type="text/javascript">
     (function ($, undefined) {
 
@@ -41,11 +49,13 @@
       }
 
       function addGroupRepresentation(group) {
-        var $item = $("<li>").addClass("repo grid-1 " + group.category);
-        var $link = $("<a>").attr("href", "group.html?name=" + group.name).appendTo($item);
-        $link.append($("<h2>").text(group.name));
-        $link.append($("<p>").text(group.description));
-        $item.appendTo("#repos");
+        if (group) {
+          var $item = $("<li>").addClass("repo grid-1 " + group.category);
+          var $link = $("<a>").attr("href", "group.html?name=" + group.name).appendTo($item);
+          $link.append($("<h2>").text(group.name));
+          $link.append($("<p>").text(group.description));
+          $item.appendTo("#repos");
+          }
       }
 
       function processMembers(members) {
@@ -93,16 +103,49 @@
         });
 
       }
+      addGroups();
+
+
+      function addReposInCompatibleWay(org,repos, page) {
+
+        console.log('addReposInCompatibleWay ' + org );
+
+        repos = repos || [];
+        page = page || 1;
+
+        var uri = "https://api.github.com/orgs/" + org + "/repos?callback=?"
+                + "&per_page=100"
+                + "&page="+page;
+
+        $.getJSON(uri, function (result) {
+
+          if (result.data && result.data.length > 0) {
+            repos = repos.concat(result.data);
+            NCIPGlobal.namespace('cache.repos2.'+org);
+            NCIPGlobal.namespace('cache.repos2.'+org+'.'+page);
+            NCIPGlobal.cache.repos2[org][page] = result.data;
+            addReposInCompatibleWay(org,repos, page + 1);
+          }
+        });
+      }
 
       NCIPGlobal.processReposCallback = processRepositories;
       NCIPGlobal.processMembersCallback = processMembers;
 
       NCIPGlobal.initializeCache();
       NCIPGlobal.findAllOrgsFromReposCatalog(ncip_repos);
+
+      if ( browserIsIELessThan10 ) {
+
+        var setOfOrgs = JSON.parse( NCIPGlobal.cache.orgs );
+
+        for (var org in setOfOrgs) {
+          addReposInCompatibleWay(org)
+          }
+        }
+
       NCIPGlobal.getReposFromAllOrgs();
       NCIPGlobal.getMembersFromAllOrgs();
-
-      addGroups();
 
     })(jQuery);
     </script>
