@@ -13,6 +13,14 @@
     <script type="text/javascript" src="assets/jquery-1.7.1.min.js"></script>
     <script type="text/javascript" src="assets/strftime.js"></script>
     <script type="text/javascript" src="assets/ncipnamespace.js"></script>
+
+    <script>
+      var browserIsIELessThan10 = false;
+      if ($.browser.msie && parseInt($.browser.version, 10) < 10){
+        browserIsIELessThan10 = true;
+        }
+    </script>
+
     <script type="text/javascript">
     (function ($, undefined) {
 
@@ -96,8 +104,12 @@
 
         $(function () {
           $.each(repoGroups, function (i, group) {
-            if( group.name === repoGroupName ) {
-              repoGroup = group;
+            if( group ) {
+              if( group.name ) {
+                if( group.name === repoGroupName ) {
+                  repoGroup = group;
+                  }
+                }
               }
             });
         });
@@ -111,11 +123,15 @@
 
             $.each(ncip_repos, function (i, ncip_repo) {
 
-              if( repo.full_name === ncip_repo.full_name ) {
-                if( ncip_repo.group === repoGroupName ) {
-                  matchedToGroup = true;
+              if( ncip_repo ) {
+                if( ncip_repo.full_name ) {
+                  if( repo.full_name === ncip_repo.full_name ) {
+                    if( ncip_repo.group === repoGroupName ) {
+                      matchedToGroup = true;
+                      }
+                    }
+                  }
                 }
-              }
 
             });
 
@@ -171,11 +187,64 @@
           addReposFromGroup(reposInGroup);
         }
 
+      function getReposFromOneOrgWithoutCORS(org,page) {
+
+        page = page || 1;
+
+        var uri = "https://api.github.com/orgs/" + org + "/repos?callback=?"
+                + "&per_page=100"
+                + "&page="+page;
+
+        $.getJSON(uri, function (result) {
+
+          if (result.data && result.data.length > 0) {
+            NCIPGlobal.accumulateListOfRepos(result.data);
+            NCIPGlobal.storeLastReposChangeDateInCache(org,page,result.lastModified);
+            getReposFromOneOrgWithoutCORS(org,page + 1);
+            }
+          else {
+            // Completed paginating the repos
+            NCIPGlobal.reportReceivedOrgRepos(org);
+
+            if( NCIPGlobal.haveReceivedAllRequestedOrgRepos() ) {
+              NCIPGlobal.storeReposInCache();
+              NCIPGlobal.processRepos();
+              }
+            }
+
+        });
+      }
+
+      function getMembersFromOneOrgWithoutCORS(org) {
+
+        var uri = "https://api.github.com/orgs/" + org + "/members?callback=?";
+
+        $.getJSON(uri, function (result) {
+
+          NCIPGlobal.reportReceivedOrgMembers(org);
+          NCIPGlobal.accumulateListOfMembers(result.data);
+
+          if( NCIPGlobal.haveReceivedAllRequestedOrgMembers() ) {
+            NCIPGlobal.storeMembersInCache();
+            NCIPGlobal.processMembers();
+            }
+
+        });
+
+      }
+
+
       NCIPGlobal.processReposCallback = processRepositoriesInGroup;
       NCIPGlobal.processMembersCallback = processMembers;
 
       NCIPGlobal.initializeCache();
       NCIPGlobal.findAllOrgsFromReposCatalog(ncip_repos);
+
+      if ( browserIsIELessThan10 ) {
+        NCIPGlobal.getReposFromOneOrg   = getReposFromOneOrgWithoutCORS;
+        NCIPGlobal.getMembersFromOneOrg = getMembersFromOneOrgWithoutCORS;
+        }
+
       NCIPGlobal.getReposFromAllOrgs();
       NCIPGlobal.getMembersFromAllOrgs();
 

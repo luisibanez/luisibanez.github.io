@@ -233,7 +233,7 @@ window.NCIPGlobal = (function () {
 
             if (result.data && result.data.length > 0) {
               // Concatenate with previous pages
-              NCIPGlobal.accumulateListOfMembers(result.data);
+              NCIPGlobal.accumulateListOfRepos(result.data);
               NCIPGlobal.storeLastReposChangeDateInCache(org,page,result.lastModified);
               // Go on recursively
               NCIPGlobal.getReposFromOneOrg(org, page + 1);

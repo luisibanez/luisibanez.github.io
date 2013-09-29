@@ -106,7 +106,7 @@
       addGroups();
 
 
-      function addReposInCompatibleWay(org,page) {
+      function getReposFromOneOrgWithoutCORS(org,page) {
 
         page = page || 1;
 
@@ -119,7 +119,7 @@
           if (result.data && result.data.length > 0) {
             NCIPGlobal.accumulateListOfRepos(result.data);
             NCIPGlobal.storeLastReposChangeDateInCache(org,page,result.lastModified);
-            addReposInCompatibleWay(org,page + 1);
+            getReposFromOneOrgWithoutCORS(org,page + 1);
             }
           else {
             // Completed paginating the repos
@@ -134,7 +134,7 @@
         });
       }
 
-      function addMembersInCompatibleWay(org) {
+      function getMembersFromOneOrgWithoutCORS(org) {
 
         var uri = "https://api.github.com/orgs/" + org + "/members?callback=?";
 
@@ -160,29 +160,13 @@
       NCIPGlobal.findAllOrgsFromReposCatalog(ncip_repos);
 
       if ( browserIsIELessThan10 ) {
-
-        NCIPGlobal.populateListOfRequestOrgs();
-        NCIPGlobal.clearListOfReceivedReposOrgs();
-        NCIPGlobal.clearListOfReceivedMembersOrgs();
-
-        var setOfOrgs = JSON.parse( NCIPGlobal.cache.orgs );
-
-        for (var org in setOfOrgs) {
-          addReposInCompatibleWay(org)
-          }
-
-        for (var org in setOfOrgs) {
-          addMembersInCompatibleWay(org)
-          }
-
+        NCIPGlobal.getReposFromOneOrg   = getReposFromOneOrgWithoutCORS;
+        NCIPGlobal.getMembersFromOneOrg = getMembersFromOneOrgWithoutCORS;
         }
-      else {
 
-        NCIPGlobal.getJSONIfModified = NCIPGlobal.getJSONIfModifiedWithCORS;
-        NCIPGlobal.getReposFromAllOrgs();
-        NCIPGlobal.getMembersFromAllOrgs();
-
-        }
+      NCIPGlobal.getJSONIfModified = NCIPGlobal.getJSONIfModifiedWithCORS;
+      NCIPGlobal.getReposFromAllOrgs();
+      NCIPGlobal.getMembersFromAllOrgs();
 
     })(jQuery);
     </script>
