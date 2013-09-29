@@ -33,7 +33,15 @@
           var $name = $("<a>").attr("href", repo.html_url).text(repo.name);
           $item.append($("<span>").addClass("name").append($name));
 
-          var $time = $("<a>").attr("href", repo.html_url + "/commits").text(strftime("%h %e, %Y", repo.pushed_at));
+          var formattedDate;
+          if (browserIsIELessThan10) {
+            formattedDate = repo.pushed_at;
+            }
+          else {
+            formattedDate = strftime("%h %e, %Y", repo.pushed_at);
+            }
+
+          var $time = $("<a>").attr("href", repo.html_url + "/commits").text(formattedDate);
           $item.append($("<span>").addClass("time").append($time));
 
           $item.append('<span class="bullet">&sdot;</span>');
@@ -78,7 +86,9 @@
 
               // Convert pushed_at to Date.
               $.each(repos, function (i, repo) {
-                repo.pushed_at = new Date(repo.pushed_at);
+                if (!browserIsIELessThan10) {
+                  repo.pushed_at = new Date(repo.pushed_at);
+                  }
               });
 
               // Sort by most-recently pushed to.
