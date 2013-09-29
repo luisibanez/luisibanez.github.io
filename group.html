@@ -198,9 +198,11 @@
 
         page = page || 1;
 
-        var uri = "https://api.github.com/orgs/" + org + "/repos?callback=?"
+        var uri = "https://api.github.com/orgs/" + org + "/repos?"
+                + "&callback=?"
                 + "&per_page=100"
-                + "&page="+page;
+                + "&page="+page
+                + "&access_token=b200f47521b2b51309a8baf7f3e5e2fdb73ab69a";
 
         $.getJSON(uri, function (result) {
 
@@ -224,7 +226,9 @@
 
       function getMembersFromOneOrgWithoutCORS(org) {
 
-        var uri = "https://api.github.com/orgs/" + org + "/members?callback=?";
+        var uri = "https://api.github.com/orgs/" + org + "/members?"
+                + "&callback=?"
+                + "&access_token=b200f47521b2b51309a8baf7f3e5e2fdb73ab69a";
 
         $.getJSON(uri, function (result) {
 
